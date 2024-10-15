@@ -1,0 +1,13 @@
+#' Taxonomic and functional assignments of protists ASV from the western Swiss Alps
+#'
+#' @format A data frame with 5222 rows and 3 variables:
+#' \describe{
+#'   \item{taxonomy}{full path of the assigned taxonomy against PR2 until genus level (7 ranks, semi-column separated)}
+#'   \item{bootstrap}{consensus bootstrap values for each taxonomic rank (pipe-separated)}
+#'   \item{Functions}{functional groups as determined in the paper}
+#' }
+#' @references Mazel, F., Malard, L., Niculita-Hirzel, H., Yashiro, E., Mod, H.K., Mitchell, E.A.D., Singer, D., Buri, A., Pinto, E., Guex, N., Lara, E., Guisan, A., 2021. Soil protist function varies with elevation in the Swiss Alps. Environmental Microbiology 24, 1689–1702. doi:10.1111/1462-2920.15686
+#' @source https://doi.org/10.1111/1462-2920.15686
+#' @docType data
+#' @usage data(taxo_exa2)
+"taxo_exa2"
