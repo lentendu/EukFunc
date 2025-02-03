@@ -30,5 +30,5 @@
 #' }
 #' @docType data
 #' @usage data(DBf)
-#' @seealso \code{\link{DBu}}, \code{\link[pr2database:pr2]{pr2database::pr2()}}
+#' @seealso [DBu()], [pr2database::pr2()]
 "DBf"

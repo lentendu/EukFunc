@@ -39,6 +39,6 @@ fungi and nematodes from PR2 version 4.12.0 and
 the functional assignments of the SoilEukFunc database.
 }
 \seealso{
-\code{\link{DBu}}, \code{\link[pr2database:pr2]{pr2database::pr2()}}
+[DBu()], [pr2database::pr2()]
 }
 \keyword{datasets}
