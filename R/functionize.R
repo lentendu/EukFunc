@@ -70,6 +70,6 @@ functionize <- function(df, taxo_names, func_names, empty_string=c(NA, "NA", "",
     }
   }
   # return taxonomic ranks, functional annotation
-  select(res,any_of(taxo_names),all_of(func_names),level,taxa,count) %>%
+  select(res,any_of(taxo_names),all_of(func_names),.data$level,.data$taxa,.data$count) %>%
     mutate(across(any_of(taxo_names),~tidyr::replace_na(as.character(.),"")))
 }

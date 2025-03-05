@@ -3,9 +3,9 @@
 \docType{data}
 \name{DBc_main}
 \alias{DBc_main}
-\title{Condensed version of the SoilEukFunc database.}
+\title{Condensed version of the EukFunc database.}
 \format{
-A data frame with 5749 rows and 6 variables:
+A data frame with 6770 rows and 6 variables:
 \describe{
   \item{taxonomy}{Taxonomic path of clades for which a unique functional information is available}
   \item{main_functional_class}{Main nutrient uptake mode of a given taxon with additional information for symbiotroph}
@@ -20,8 +20,8 @@ data(DBc_main)
 }
 \description{
 A database containing the condensed taxonomy of all soil-associated protists,
-fungi and nematodes clades from PR2 version 4.12.0 and
-their unique main functional assignments from the SoilEukFunc database.
+fungi and nematodes clades from PR2 v5.0.0 and
+their unique main functional assignments from the EukFunc database.
 }
 \seealso{
 \code{\link{DBu}}, \code{\link{DBc}}

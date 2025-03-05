@@ -12,6 +12,8 @@
 #'        "AB918716.1,EU039893.1,JF747215.1",
 #'        "ABC")
 #' assign_genbank(acc)
+#' assign_genbank(acc, cons=80)
+#' assign_genbank(acc, cons=80, ref=DBc_minimal)
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @importFrom methods formalArgs
@@ -24,19 +26,19 @@ assign_genbank <- function(x,...) {
       rename(taxonomy="assigned_taxonomy") %>%
       assign_path()
   } else {
-    argu_cons <- c(unlist(argu[names(argu) %in% formalArgs(consensing)[-1]]))
+    argu_cons <- argu[names(argu) %in% formalArgs(consensing)[-1]]
     if ( length(argu_cons) == 0 ) {
       tmp <- consensing(x)
     } else {
-      tmp <- do.call(consensing, list(x, argu_cons))
+      tmp <- do.call(consensing, append(list(x), argu_cons))
     }
     tmp<-select(tmp, "accession", "assigned_taxonomy") %>%
       rename(taxonomy="assigned_taxonomy")
-    argu_path <- list(c(unlist(argu[names(argu) %in% formalArgs(assign_path)[-1]])))
+    argu_path <- argu[names(argu) %in% formalArgs(assign_path)[-1]]
     if ( length(argu_path) == 0 ) {
       assign_path(tmp)
     } else {
-      do.call(assign_path, list(tmp, argu_path))
+      do.call(assign_path, append(list(tmp), argu_path))
     }
   }
 }

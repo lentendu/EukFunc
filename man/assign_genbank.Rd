@@ -23,6 +23,8 @@ acc<-c("AB918716.1,EU039893.1,JF747215.1",
        "AB918716.1,EU039893.1,JF747215.1",
        "ABC")
 assign_genbank(acc)
+assign_genbank(acc, cons=80)
+assign_genbank(acc, cons=80, ref=DBc_minimal)
 }
 \seealso{
 \code{\link{consensing}}, \code{\link{DBf}}, \code{\link{assign_path}}, \code{\link{assign_sp}}

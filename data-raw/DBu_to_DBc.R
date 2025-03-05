@@ -16,7 +16,7 @@ nDBc <- functionize(DBu, taxonomic_ranks, func_classes) %>%
 # Use only main and secondary functional classes to condense the taxonomy
 symb1<-filter(DBu,main_functional_class=="symbiotroph") %>%
   select(species,detailed_functional_class) %>%
-  separate(detailed_functional_class,c("d1","d2","d3","d4"),sep="; ",fill="right") %>%
+  separate(detailed_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
   pivot_longer(-species,names_to="lev",values_to="detailed") %>%
   filter(!is.na(detailed),!grepl("lichenized",detailed)) %>% # lichenized and host phototroph always make two detailed annotation per species (semi-column separated), so remove one
   mutate(det=ifelse(grepl("parasite",detailed),"parasite symbiotroph",
@@ -27,7 +27,7 @@ symb1<-filter(DBu,main_functional_class=="symbiotroph") %>%
 
 symb2<-filter(DBu,secondary_functional_class=="symbiotroph") %>%
   select(species,detailed_secondary_functional_class) %>%
-  separate(detailed_secondary_functional_class,c("d1","d2","d3","d4"),sep="; ",fill="right") %>%
+  separate(detailed_secondary_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
   pivot_longer(-species,names_to="lev",values_to="detailed") %>%
   filter(!is.na(detailed),!grepl("lichenized",detailed)) %>%
   mutate(det=ifelse(grepl("parasite",detailed),"parasite symbiotroph",

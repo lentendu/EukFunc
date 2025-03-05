@@ -4,22 +4,24 @@
 \alias{consensing}
 \title{Compute consensus taxonomy}
 \usage{
-consensing(x, cons = 60, sep_string = ",", no_match = "no_match")
+consensing(x, cons = 60, db = DBf, sep_string = ",", no_match = "no_match")
 }
 \arguments{
 \item{x}{a vector or list of comma separated genbank accessions}
 
 \item{cons}{consensus threshold in percent, default to 60}
 
+\item{db}{database to be used as reference, with a pr2_accession column and the 9 rank's taxonomy columns}
+
 \item{sep_string}{separator for multiple accessions in one element, default to comma}
 
-\item{no_match}{value to search for for an absence of math, default to "no_match"}
+\item{no_match}{value to search for for an absence of match, default to "no_match"}
 }
 \value{
 a data-frame with the provided accessions, the assign taxonomy path, the assign clade and the assign taxonomic rank
 }
 \description{
-A consensus taxonomy is created from multiple Genbank accessions matching PR2 accessions present in the EukFunc full database
+A consensus taxonomy is created from multiple Genbank accessions matching PR2 accessions present in the EukFunc full database, or any provided database with the PR2 9 rank's taxonomy
 }
 \examples{
 acc<-c("AB918716.1,EU039893.1,JF747215.1",
@@ -31,7 +33,7 @@ consensing(acc)
 \dontrun{
 # Compare to already assigned taxonomy:
 cons_exa <- consensing(taxo_exa$reference)
-cbind(input=tidyr::unite(taxo_exa, taxonomy, 2:9, sep=";")$taxonomy,
+cbind(input=tidyr::unite(taxo_exa, "taxonomy", 2:10, sep=";")$taxonomy,
       dplyr::select(cons_exa, assigned_taxonomy, matched_accession, assigned_consensus))
 }
 

@@ -26,7 +26,7 @@ data(DBc)
 }
 \description{
 A database containing the condensed taxonomy of all soil-associated protists,
-fungi and nematodes clades from PR2 version 4.12.0 and
+fungi and nematodes clades from PR2 v5.0.0 and
 their unique functional assignment from the SoilEukFunc database.
 }
 \seealso{

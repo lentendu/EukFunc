@@ -16,13 +16,13 @@
 assign_sp <- function(x) {
   if( is.character(x) & is.vector(x) ) {
     data.frame(species=x) %>%
-      mutate(species_name=sub("^.*:", "", .data$species)) %>%
+      mutate(species_name=sub("^[a-z]:", "", .data$species)) %>%
       left_join(mutate(DBu,across(all_of(func_classes),as.character)) %>%
                   select("species", !!func_classes), by=c("species_name"="species"))
   } else if ( is.data.frame(x) ) {
     if ( any(grepl("[Ss]pecies", colnames(x))) ) {
       y <- rlang::sym(grep("[Ss]pecies", colnames(x), value=T))
-      mutate(x, species_name=sub("^.*:", "", !!y)) %>%
+      mutate(x, species_name=sub("^[a-z]:", "", !!y)) %>%
         left_join(mutate(DBu,across(all_of(func_classes),as.character)) %>%
                     select("species", !!func_classes), by=c("species_name"="species"))
     } else {

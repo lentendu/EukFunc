@@ -2,7 +2,7 @@
 #'
 #' @format A data frame with 5222 rows and 3 variables:
 #' \describe{
-#'   \item{taxonomy}{full path of the assigned taxonomy against PR2 until genus level (7 ranks, semi-column separated)}
+#'   \item{taxonomy}{full path of the assigned taxonomy against PR2 4.12 (8-rank's taxonomy structure) until genus level (7 ranks, semi-column separated)}
 #'   \item{bootstrap}{consensus bootstrap values for each taxonomic rank (pipe-separated)}
 #'   \item{Functions}{functional groups as determined in the paper}
 #' }

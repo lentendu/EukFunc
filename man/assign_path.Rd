@@ -7,7 +7,7 @@
 assign_path(x, ref = DBc, sep = ";", empty_string = c(NA, "NA", "", " "))
 }
 \arguments{
-\item{x}{a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v4.12.0 taxonomic ranks}
+\item{x}{a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5 9 rank's taxonomic structure}
 
 \item{ref}{the reference database for performing the functional assignment, default to \code{\link{DBc}}}
 
@@ -18,12 +18,12 @@ assign_path(x, ref = DBc, sep = ";", empty_string = c(NA, "NA", "", " "))
 \value{
 a data-frame composed of:
 \itemize{
-  \item{}{taxonomy: the input taxonomy path}
-  \item{}{all other columns if `x` is a data-frame}
-  \item{}{assigned_from: the matched taxonomy path in the condensed database}
-  \item{}{assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path}
-  \item{}{assigned_from_taxa: the deepest clade name of the matched taxonomy path}
-  \item{}{all the columns of SoilEukFunc database containing the functional informations}
+  \item taxonomy: the input taxonomy path
+  \item all other columns if `x` is a data-frame
+  \item assigned_from: the matched taxonomy path in the condensed database
+  \item assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path
+  \item assigned_from_taxa: the deepest clade name of the matched taxonomy path
+  \item all the columns of SoilEukFunc database containing the functional informations
 }
 }
 \description{
@@ -34,8 +34,11 @@ Using ref parameter, other database can be used to assign a function
 }
 \examples{
 taxo_path <-
-  c("Eukaryota;Alveolata;Ciliophora;Colpodea;Colpodea_X;Colpodida;Colpoda;Colpoda_cucullus;",
-    "Eukaryota;Opisthokonta;Fungi;Ascomycota;Pezizomycotina;Sordariomycetes;Fusarium;Fusarium_sp.;")
+  gsub("[\r\n ]","",
+    c("Eukaryota;TSAR;Alveolata;Ciliophora;Colpodea;
+      Colpodea_X;Colpodida;Colpoda;Colpoda_cucullus;",
+      "Eukaryota;Obazoa;Opisthokonta;Fungi;Ascomycota;
+      Pezizomycotina;Sordariomycetes;Fusarium;Fusarium_sp.;"))
 assign_path(taxo_path)
 
 # Using a data-frame with separated taxonomic rank columns as input:
@@ -44,18 +47,17 @@ dplyr::count(path_func_exa, assigned_at_rank)
 dplyr::count(path_func_exa, main_functional_class)
 
 \dontrun{
-# Using a data-frame with a taxonomy column as input:
-path_func_exa2 <- assign_path(taxo_exa2)
+# Using a data-frame with a taxonomy column as input
+# (needs to match PR2 v5 9 rank's taxonomy structure):
+path_func_exa2 <- unite(taxo_exa, "taxonomy", all_of(colnames(taxo_exa)[2:10]), sep=";") \%>\%
+  assign_path()
 dplyr::count(path_func_exa2, assigned_at_rank)
 dplyr::count(path_func_exa2, main_functional_class)
 
 # Improve the assignment using the condensed database only for the main functional class:
-path_func_exa2 <- assign_path(taxo_exa2, ref=DBc_main)
-dplyr::count(path_func_exa2, assigned_at_rank)
-dplyr::count(path_func_exa2, main_functional_class)
-
-# Compare with published results
-dplyr::count(path_func_exa2, Functions, main_functional_class)
+path_func_exa3 <- assign_path(taxo_exa, ref=DBc_main)
+dplyr::count(path_func_exa3, assigned_at_rank)
+dplyr::count(path_func_exa3, main_functional_class)
 }
 }
 \seealso{
