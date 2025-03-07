@@ -19,7 +19,7 @@ symb1<-filter(DBu,main_functional_class=="symbiotroph") %>%
   separate(detailed_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
   pivot_longer(-species,names_to="lev",values_to="detailed") %>%
   filter(!is.na(detailed),!grepl("lichenized",detailed)) %>% # lichenized and host phototroph always make two detailed annotation per species (semi-column separated), so remove one
-  mutate(det=ifelse(grepl("parasite",detailed),"parasite symbiotroph",
+  mutate(det=ifelse(grepl("parasite|pathogen",detailed),"parasite symbiotroph",
                     ifelse(grepl("mycorrhiz",detailed),"mycorrhiza symbiotroph",
                            ifelse(grepl("host phototroph",detailed),"host phototroph symbiotroph","other symbiotroph")))) %>%
   group_by(species) %>%
@@ -30,7 +30,7 @@ symb2<-filter(DBu,secondary_functional_class=="symbiotroph") %>%
   separate(detailed_secondary_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
   pivot_longer(-species,names_to="lev",values_to="detailed") %>%
   filter(!is.na(detailed),!grepl("lichenized",detailed)) %>%
-  mutate(det=ifelse(grepl("parasite",detailed),"parasite symbiotroph",
+  mutate(det=ifelse(grepl("parasite|pathogen",detailed),"parasite symbiotroph",
                     ifelse(grepl("mycorrhiz",detailed),"mycorrhiza symbiotroph",
                            ifelse(grepl("host phototroph",detailed),"host phototroph symbiotroph","other symbiotroph")))) %>%
   group_by(species) %>%
