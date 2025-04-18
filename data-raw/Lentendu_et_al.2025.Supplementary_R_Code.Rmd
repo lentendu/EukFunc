@@ -1,0 +1,573 @@
+---
+title: "Analysis script for: ‘EukFunc: A holistic Eukaryotic Functional reference for automated profiling of soil eukaryotes’"
+author: "by Guillaume Lentendu and David Singer"
+date: "March 5th, 2025"
+output:
+  pdf_document:
+    latex_engine: xelatex
+mainfont: LiberationSerif
+sansfont: LiberationSans
+monofont: LiberationMono
+geometry: margin=1.2cm
+---
+
+```{r echo=T, message=F, warnings=F}
+library(plyr)
+library(tidyverse)
+library(ggh4x)
+library(gridExtra)
+library(EukFunc)
+library(networkD3)
+library(htmlwidgets)
+```
+
+```{r eval=T, echo=T, message=F, warnings=F}
+# Table S1: fields available in each databases
+dbs<-c("DBf","DBu","DBu_main","DBc","DBc_main","DBc_minimal")
+table_S1<-ldply(setNames(as.list(dbs),dbs),function(x) {
+  apply(get(x),2,function(y) {length(unique(gsub(":[^;]*","",y)))}) %>%
+    data.frame(n=.) %>%
+    rownames_to_column("field")
+},.id="database") %>%
+  pivot_wider(names_from=database,values_from=n)
+write.table(table_S1,"Table_S1.tsv",sep="\t",row.names=F,quote=F)
+
+# Table 1: main functional class ------------------------------------------
+# including additional information for symbiotroph
+# compute intermediate class names
+intermediate_class<-filter(DBu,!grepl(":",division)) %>% # remove organelles
+  mutate(across(everything(), ~as.character(.))) %>%
+  mutate(clade=ifelse(subdivision=="Fungi","fungi",
+                      ifelse(class=="Nematoda","nematodes","protists")),
+         main_functional_class=ifelse(
+           main_functional_class=="symbiotroph",
+           ifelse(grepl("parasite",detailed_functional_class),
+                  "symbiotroph: parasite",
+                  ifelse(grepl("host phototroph",detailed_functional_class),
+                         "symbiotroph: host phototroph",
+                         "symbiotroph: others")),
+           main_functional_class),
+         secondary_functional_class=ifelse(
+           secondary_functional_class=="symbiotroph",
+           ifelse(grepl("parasite",detailed_secondary_functional_class),
+                  "symbiotroph: parasite",
+                  ifelse(grepl("host phototroph",detailed_secondary_functional_class),
+                         "symbiotroph: host phototroph",
+                         "symbiotroph: others")),
+           secondary_functional_class)) %>% 
+  select(clade,main_functional_class, secondary_functional_class) %>%
+  pivot_longer(-clade,names_to="type",values_to="class") %>%
+  filter(class!="") %>%
+  group_by(class) %>%
+  summarize(clade=paste(sort(unique(clade)),collapse=", ")) %>%
+  mutate(class=as.factor(class),
+         class=fct_relevel(class,"symbiotroph: others",after=5)) %>% 
+  arrange(class)
+
+# compute statistics over all species and sequences in the database
+stat<-filter(DBf,!grepl(":",division)) %>%
+  mutate(across(everything(), ~as.character(.)),
+         main=ifelse(subdivision=="Fungi","fungi",
+                     ifelse(class=="Nematoda","nematodes","protists")),
+         main_functional_class=ifelse(
+           main_functional_class=="symbiotroph",
+           ifelse(grepl("parasite",detailed_functional_class),
+                  "symbiotroph: parasite",
+                  ifelse(grepl("host phototroph",detailed_functional_class),
+                         "symbiotroph: host phototroph",
+                         "symbiotroph: others")),
+           main_functional_class),
+         secondary_functional_class=ifelse(
+           secondary_functional_class=="symbiotroph",
+           ifelse(grepl("parasite",detailed_secondary_functional_class),
+                  "symbiotroph: parasite",
+                  ifelse(grepl("host phototroph",detailed_secondary_functional_class),
+                         "symbiotroph: host phototroph",
+                         "symbiotroph: others")),
+           secondary_functional_class),
+         across(c(main_functional_class,secondary_functional_class),
+                ~factor(.,intermediate_class$class))) %>%
+  arrange(main_functional_class,secondary_functional_class) %>%
+  rowwise() %>% 
+  mutate(func=paste(sort(c(main_functional_class,secondary_functional_class)),collapse="_"),
+         func=factor(func,unique(func))) %>% # unite the main and secondary classes when secondary not empty
+  ungroup() %>%
+  summarize(sequences=n(),.by=c(main,species,func)) %>%
+  summarize(sequences=sum(sequences),species=n(),.by=c(main,func)) %>%
+  pivot_longer(c(species,sequences),names_to="type",values_to="count")
+
+# format to table by clade (fungi, nematodes, protists)
+table_1<-pivot_wider(stat,names_from=type,values_from=count) %>%
+  rename(clade="main") %>%
+  separate(func,c("main","secondary"),sep="_",fill="right") %>%
+  mutate(secondary=replace_na(secondary,"_")) %>%
+  arrange(clade,main,secondary) %>%
+  group_by(clade) %>%
+  mutate(perc_sp=round(species/sum(species)*100,digits=1),
+         perc_seq=round(sequences/sum(sequences)*100,digits=1)) %>%
+  unite("species",species,perc_sp,sep = " (") %>%
+  unite("sequences",sequences,perc_seq,sep=" (") %>%
+  mutate(across(c(species,sequences),~sub("$"," %)",.)))
+write.table(table_1,"Table_1.tsv",sep="\t",row.names=F,quote=F)
+
+# summary for text
+# count
+filter(DBc,!grepl(":",taxonomy)) %>%
+  mutate(clade=ifelse(grepl("Fungi",taxonomy),"fungi",
+                      ifelse(grepl("Nematoda",taxonomy),"nematodes","protists"))) %>%
+  summarize(n=sum(count),.by=c(clade))
+
+# class percentage (main and secondary together)
+filter(DBc,!grepl(":",taxonomy)) %>%
+  mutate(clade=ifelse(grepl("Fungi",taxonomy),"fungi",
+                      ifelse(grepl("Nematoda",taxonomy),"nematodes","protists")),
+         type=ifelse(is.na(secondary_functional_class) | secondary_functional_class=="",1,2)) %>%
+  pivot_longer(c(main_functional_class,secondary_functional_class),names_to="ms",values_to="class") %>%
+  filter(!(type==1 & ms=="secondary_functional_class")) %>%
+  mutate(n=ifelse(type==2,count*0.5,count)) %>%
+  summarize(n=sum(n),.by=c(clade,class)) %>%
+  group_by(clade) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1)) %>%
+  ungroup() %>% 
+  arrange(clade,class)
+
+# class percentage (main and secondary separated)
+filter(DBc,!grepl(":",taxonomy)) %>%
+  mutate(clade=ifelse(grepl("Fungi",taxonomy),"fungi",
+                      ifelse(grepl("Nematoda",taxonomy),"nematodes","protists"))) %>%
+  count(clade,main_functional_class,secondary_functional_class,wt=count) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1),.by=clade)
+
+# Figure 1: Sankey plot ---------------------------------------------------
+clade_stat<-filter(DBc,!grepl(":",taxonomy)) %>%
+  mutate(clade=ifelse(grepl(";Fungi[;$]",taxonomy),"fungi",
+                      ifelse(grepl(";Nematoda[;$]",taxonomy),"nematodes","protists"))) %>%
+  count(clade,main_functional_class,secondary_functional_class,wt=count) %>%
+  mutate(clade=paste0(clade,"_N=",sum(n)),.by=clade) %>%
+  mutate(main_functional_class=paste0(main_functional_class,"_N=",sum(n)),.by=main_functional_class) %>%
+  mutate(secondary_functional_class=ifelse(secondary_functional_class=="",
+                                           "",
+                                           paste0(secondary_functional_class,"_N=",sum(n))),
+         .by=secondary_functional_class) %>% 
+  arrange(main_functional_class)
+clade_node<-data.frame(Node=unique(c(clade_stat$clade,clade_stat$main_functional_class,
+                                     clade_stat$secondary_functional_class))) %>%
+  filter(Node!="")
+clade_sk<-select(clade_stat,-secondary_functional_class) %>%
+  rename(Source=clade,Target=main_functional_class) %>%
+  summarize(Value=sum(n),.by=c(Source,Target)) %>%
+  mutate(group=sub("_.*","",Source)) %>% 
+  add_row(rename(clade_stat,group=clade,Source=main_functional_class,
+                 Target=secondary_functional_class) %>%
+            filter(Target!="") %>%
+            summarize(Value=sum(n),.by=c(group,Source,Target)) %>%
+            mutate(group=sub("_.*","",group))) %>%
+  mutate(Source=as.numeric(factor(Source,clade_node$Node))-1,
+         Target=as.numeric(factor(Target,clade_node$Node))-1) %>%
+  data.frame()
+nodes<-c("fungi", "nematodes", "protists", "fungi_N=8885", "nematodes_N=1402", "protists_N=5922",
+         "saprotroph_N=4011","symbiotroph_N=6620","unknown_N=325", "predator_N=2478",
+         "phototroph_N=2775", "predator_N=143","saprotroph_N=1348","symbiotroph_N=1055")
+ncolors<-c("#d38d5f95", "#00c40095", "#0000ff95", "#d38d5f", "#00c400", "#0000ff",
+           "#ffcc00", "#9a32cd", "white", "#ff3030",
+           "#7fff00", "#ff3030", "#ffcc00", "#9a32cd")
+cs<-paste0("d3.scaleOrdinal().domain(['",paste(nodes,collapse="','"),
+           "']).range(['",paste(ncolors,collapse="','"),"'])")
+
+figure1<-sankeyNetwork(Links=clade_sk, Nodes=clade_node,Source="Source", Target="Target",
+                       Value="Value", NodeID="Node", units='TWh',colourScale=cs, 
+                       fontSize=28, nodeWidth=50, LinkGroup='group',fontFamily="sans",sinksRight=F,margin=2)
+fig1_rend<-htmlwidgets::onRender(figure1, '
+  function(el) { 
+    var cols_x = this.sankey.nodes().map(d => d.x).filter((v, i, a) => a.indexOf(v) === i).sort(function(a, b){return a - b});
+    var labels = ["", "Main functional class", "Secondary functional class"];
+    cols_x.forEach((d, i) => {
+      d3.select(el).select("svg")
+        .append("text")
+        .attr("x", d-200)
+        .attr("y", -10)
+        .attr("font-size", 34)
+        .attr("font-family", "sans")
+        .attr("font-weight", "bold")
+        .text(labels[i]);
+    })
+  }')
+fig1_rend2<-htmlwidgets::onRender(fig1_rend,'function(el, x) {
+    d3.selectAll(".node text")
+        .attr("font-weight", "bold");
+  }')
+
+saveWidget(fig1_rend2, file=paste0( getwd(), "/Figure1.html"),
+           selfcontained=T,
+           knitrOptions=knitr::opts_chunk$set(dpi=300, fig.width=6, fig.height=3))
+
+
+# Table 2: database assignment level --------------------------------------
+taxonomic_ranks<-colnames(DBu)[1:9]
+table_2<-filter(DBc_main,!grepl(":",taxonomy)) %>%
+  mutate(clade=ifelse(grepl(";Fungi[;$]",taxonomy),"fungi",
+                      ifelse(grepl(";Nematoda[;$]",taxonomy),"nematodes","protists")),
+         count=as.numeric(count)) %>%
+  summarize(main_clade=n(),main_species=sum(count),.by=c(clade,level)) %>% 
+  full_join(mutate(DBc,clade=ifelse(grepl(";Fungi[;$]",taxonomy),"fungi",
+                                    ifelse(grepl(";Nematoda[;$]",taxonomy),"nematodes","protists")),
+                   count=as.numeric(count)) %>%
+              summarize(detailed_clade=n(),detailed_species=sum(count),.by=c(clade,level))) %>%
+  mutate(level=factor(level,taxonomic_ranks)) %>%
+  droplevels() %>%
+  arrange(clade,level)
+write.table(table_2,"Table_2.tsv",row.names=F,sep="\t",quote=F)
+
+
+# Table S2: mixotrophs ----------------------------------------------------
+DBu_mixo<-DBu %>%
+  filter(!grepl(":",domain),
+         ((grepl("host phototroph",detailed_functional_class) |
+             main_functional_class=="phototroph") &
+            secondary_functional_class=="predator") | 
+           ((grepl("host phototroph",detailed_secondary_functional_class) |
+               secondary_functional_class=="phototroph") &
+              main_functional_class=="predator"))
+table_S2<-DBu_mixo %>%
+  mutate(main_functional_class=ifelse(grepl("host phototroph",detailed_functional_class),
+                                      paste0(main_functional_class,": host phototroph"),
+                                      as.character(main_functional_class)),
+         secondary_functional_class=ifelse(grepl("host phototroph",detailed_secondary_functional_class),
+                                           paste0(secondary_functional_class,": host phototroph"),
+                                           as.character(secondary_functional_class))) %>%
+  count(supergroup,division,subdivision,class,order,
+        main_functional_class,secondary_functional_class,name="species")
+write.table(table_S2,"Table_S2.tsv",row.names=F,sep="\t",quote=F)
+
+
+# table S3: detailed functional classes -----------------------------------
+table_S3<-filter(DBu,!grepl(":",domain)) %>%
+  mutate(clade=ifelse(subdivision=="Fungi","fungi",
+                      ifelse(class=="Nematoda","nematodes","protists"))) %>%
+  select(clade,main_functional_class,detailed_functional_class) %>%
+  rename(main="main_functional_class",detailed="detailed_functional_class") %>% 
+  add_row(filter(DBu,!grepl(":",domain)) %>%
+            mutate(clade=ifelse(subdivision=="Fungi","fungi",
+                                ifelse(class=="Nematoda","nematodes","protists"))) %>%
+            select(clade,secondary_functional_class,
+                   detailed_secondary_functional_class) %>%
+            rename(main="secondary_functional_class",
+                   detailed="detailed_secondary_functional_class")) %>%
+  separate(detailed,c("a","b","c","d","e","f"),sep="; ",fill="right") %>%
+  pivot_longer(c(a,b,c,d,e,f),names_to="type",values_to="detailed") %>%
+  filter(!is.na(detailed), ! main %in% c("","unknown")) %>%
+  select(-type) %>% 
+  mutate(detailed=sub("  *$","",
+                      sub("\\?$","",
+                          sub(" (ca|one|two|some|many).* species$","",detailed)))) %>%
+  count(clade,main,detailed) %>%
+  arrange(main,detailed) %>% 
+  pivot_wider(names_from=clade,values_from=n,values_fill=0)
+write.table(table_S3,"Table_S3.tsv",row.names=F,quote=F,sep="\t")
+
+# table S4: Human pathogens -----------------------------------------------
+table_S4<-filter(DBu, potential_human_pathogen!="", !grepl(":",division)) %>%
+  mutate(across(everything(),as.character),
+         potential_human_pathogen=sub(" skin.*$","",potential_human_pathogen)) %>%
+  summarize(species=n(),.by=c(all_of(c(taxonomic_ranks[2:7],"potential_human_pathogen")))) %>%
+  pivot_wider(names_from=potential_human_pathogen,values_from=species,values_fill=0) %>%
+  filter(!grepl(":",supergroup))
+write.table(table_S4,"Table_S4.tsv",row.names=F,sep="\t",quote=F)
+```
+
+
+```{r eval=T, echo=T, message=F, warnings=F}
+# Table 3: assignment precision for Swiss dataset -------------------------
+# use metaPR2 dataset "Swiss_Soil", downloaded on Mar. 2025 to match PR2 V5 taxonomy
+# originally from Seppey et al. (2020, https://doi.org/10.1111/jbi.13755)
+# also used in Mazel et al. (2021, https://doi.org/10.1111/1462-2920.15686)
+soils<-read.delim("Soils_Swiss_metapr2_datasets_2025-03-06.taxo",h=T) %>%
+  mutate(species=ifelse(grepl("_sp\\.$",species),NA,species),
+         clade=ifelse(subdivision=="Fungi","Fungi",
+                      ifelse(subdivision=="Metazoa",
+                             ifelse(class=="Nematoda","Nematoda","other Metazoa"),
+                             ifelse(class=="Embryophyceae","Embryophyceae","protist")))) %>%
+  left_join(filter(DBu,class=="Nematoda") %>%
+              select(order,family,genus) %>%
+              unique() %>%
+              rename(nem_family="family"),
+            by=c("order","genus")) %>%
+  mutate(family=ifelse(is.na(nem_family),family,nem_family)) %>% 
+  select(-nem_family)
+
+# Functional assignment of the example dataset with EukFunc ---------------
+fe <- assign_path(soils, ref=DBc_main)
+
+count(fe,clade,main_functional_class) %>%
+  group_by(clade) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1)) %>%
+  ungroup() %>% 
+  select(-n) %>%
+  pivot_wider(names_from=clade,values_from=percent,values_fill=0)
+
+# Use less detailed DBc
+DBcm<-functionize(DBu, taxonomic_ranks,
+                  c("main_functional_class","secondary_functional_class")) %>%
+  mutate(across(!!taxonomic_ranks, ~na_if(., ""))) %>%
+  unite(taxonomy, !!taxonomic_ranks, sep=";", na.rm = T)
+
+fc<-assign_path(soils, ref=DBcm)
+count(fc,assigned_at_rank)
+
+# use 50/50 for ASV with 2 functional class assignments (main and secondary)
+count(fc,clade,main_functional_class,secondary_functional_class) %>%
+  mutate(type=ifelse(is.na(secondary_functional_class) | secondary_functional_class=="",1,2)) %>%
+  pivot_longer(ends_with("_class"),names_to="ms",values_to="class") %>%
+  filter(!(type==1 & ms=="secondary_functional_class")) %>%
+  mutate(n=ifelse(type==2,n*0.5,n)) %>%
+  summarize(n=sum(n),.by=c(clade,class)) %>%
+  group_by(clade) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1)) %>%
+  ungroup() %>% 
+  select(-n) %>%
+  pivot_wider(names_from=clade,values_from=percent,values_fill=0)
+
+
+# more precise taxonomic assignment with DBc_main
+fm <- assign_path(soils, ref=DBc_main)
+
+count(fm,clade,main_functional_class) %>%
+  group_by(clade) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1)) %>%
+  ungroup() %>% 
+  select(-n) %>%
+  pivot_wider(names_from=clade,values_from=percent,values_fill=0)
+
+# compare functional assignment precision
+# assign using Mazel et al. rule (Supp Table 5) as new reference database
+mts5<-read.delim("emi15686-sup-0005-additional_file_5.csv",h=T) %>%
+  rename(rank="Taxonomy_rank",division="PR2_Division",
+         supergroup="PR2_Supergroup",Functions="FUNCTIONS",
+         asv="ASVs.Counts",reads="read.Counts") %>%
+  mutate(Taxonomy=ifelse(grepl("^Unknown_",Taxonomy),
+                         sub("^.*_(.*)$","\\1_X",Taxonomy),
+                         Taxonomy),
+         Functions=gsub(" ","",replace_na(Functions,"unassigned")),
+         rank=tolower(sub("PR2_","",rank))) %>%
+  filter(Taxonomy!="Lobosa_X" | !is.na(asv) )
+
+# match all ASVs from each clades in former and new taxonomy
+old_soils<-read.delim("Soils_Swiss_metapr2_datasets_2023-02-06.taxo",h=T)
+old_taxonomic_ranks<-colnames(old_soils)[2:9]
+
+DBmazel<-ddply(mts5,.(Taxonomy,rank,Functions),function(x) {
+  filter(soils, asv_code %in% (filter(old_soils, !! rlang::sym(x$rank)==x$Taxonomy)$asv_code) )
+}) %>%
+  select(all_of(taxonomic_ranks),Functions) %>%
+  mutate(Functions=ifelse(genus %in% c("Apoikiospumella","Spumella"),"Consumer",
+                          ifelse(genus=="Chrysamoeba","Phototrophic",Functions))) %>%
+  count(across(all_of(taxonomic_ranks)),Functions) %>%
+  slice_head(n=1, by = all_of(taxonomic_ranks)) %>% 
+  functionize(.,taxonomic_ranks,"Functions") %>%
+  unite("taxonomy", taxonomic_ranks[1:8], sep=";") %>%
+  mutate(taxonomy=sub(";*$","",taxonomy))
+
+fp<-filter(soils,clade=="protist") %>%
+  select(-ecological_function,-clade) %>%
+  unite("taxonomy", all_of(taxonomic_ranks), sep=";") %>%
+  mutate(taxonomy=sub("(;NA)*$","",taxonomy)) %>%
+  assign_path(ref=DBmazel)
+
+# compare to best assignment with DBcm
+table3<-count(fp,assigned_at_rank) %>% 
+  mutate(study="Mazel et al., 2021",clade="protist") %>%
+  add_row(filter(fc,clade=="protist") %>%
+            count(assigned_at_rank) %>%
+            mutate(study="this study",clade="protist")) %>%
+  add_row(count(fc,assigned_at_rank) %>%
+            mutate(study="this study",clade="all eukaryotes")) %>%
+  mutate(assigned_at_rank=factor(assigned_at_rank,colnames(DBu)[1:9]),
+         assigned_at_rank=fct_na_value_to_level(assigned_at_rank,level="unassigned")) %>%
+  summarize(n=sum(n),.by=c(study,assigned_at_rank,clade)) %>% 
+  group_by(study,clade) %>%
+  mutate(percent=round(n/sum(n)*100,digits=1)) %>% 
+  ungroup() %>% 
+  droplevels() %>% 
+  arrange(assigned_at_rank,study,desc(clade)) %>%
+  pivot_wider(names_from=c(study,clade),values_from=c(n,percent),values_fill=0)
+write.table(table3,"Table_3.tsv",sep="\t",row.names=F,quote=F)
+
+# compare at the ASV level
+table_s6<-select(fp,asv_code,Functions) %>%
+  mutate(Functions=ifelse(is.na(Functions),"unassigned",Functions)) %>% 
+  full_join(filter(fm,clade=="protist") %>%
+              select(asv_code,main_functional_class) %>%
+              mutate(main_functional_class=ifelse(is.na(main_functional_class) | main_functional_class=="unknown",
+                                                  "unassigned",main_functional_class))) %>%
+  count(Functions,main_functional_class) %>%
+  mutate(Functions=mapvalues(Functions,
+                        c("Consumer","Parasite","Phototrophic"),
+                        c("predator","parasite symbiotroph","phototroph")),
+         percent=round(n/sum(n)*100,digits=2),
+         same_assignment=ifelse(Functions==main_functional_class,"yes","no")) %>%
+  arrange(Functions,desc(percent))
+write.table(table_s6,"Table_S6.tsv",sep="\t",row.names=F,quote=F)
+
+# by how much does the functional assignment match
+count(table_s6,main_functional_class,same_assignment,wt=percent) %>%
+  arrange(desc(n))
+count(table_s6,main_functional_class,same_assignment,wt=percent) %>%
+  arrange(desc(n)) %>%
+  filter(same_assignment=="yes") %>% 
+  pull(n) %>%
+  sum()
+```
+
+
+```{r echo=T, eval=T, message=F, warnings=F}
+# Figure 2: example dataset boxplots --------------------------------------
+# load ASV relative abundance, using metaPR2 dataset Soils_Swiss, version of Feb. 2023
+# and add EukFunc functional assignment
+soils_ASV<-read.delim("Soils_Swiss_metapr2_datasets_2025-03-06.ASV.tsv",h=T) %>%
+  left_join(select(fc,asv_code,clade,main_functional_class,secondary_functional_class),by="asv_code") %>%
+  filter(clade!="Embryophyceae") %>% # do not consider Embryophyceae at all
+  mutate(type=ifelse(is.na(secondary_functional_class) | secondary_functional_class=="",1,2)) %>%
+  pivot_longer(ends_with("_class"),names_to="ms",values_to="class") %>%
+  filter(!(type==1 & ms=="secondary_functional_class")) %>%
+  mutate(n=ifelse(type==2,0.5,1),
+         n_reads=n_reads*n) %>%
+  summarize(n=sum(n),n_reads=sum(n_reads),.by=c(sample_code,clade,class)) %>%
+  mutate(class=replace_na(class,"not_available"),
+         m=2) %>% 
+  uncount(m,.id="id") %>%
+  mutate(clade=ifelse(id==1,"all Eukaryotes",clade)) %>%
+  filter(clade!="other Metazoa") %>% # other Metazoa included in all Eukaryotes rel. ab. as unknown class
+  summarize(n=sum(n),n_reads=sum(n_reads),.by=c(sample_code,clade,class)) %>% 
+  mutate(perc=n/sum(n)*100,ra=n_reads/sum(n_reads),.by=c(sample_code,clade))
+
+# average of differential assignment using protist vs all eukaryotes
+soil_mean_stat<-filter(soils_ASV,clade %in% c("all Eukaryotes","protist")) %>%
+  select(sample_code,clade,class,n) %>%
+  pivot_wider(names_from=clade,values_from=n,values_fill=0) %>%
+  mutate(diff=`all Eukaryotes`-protist,total=sum(`all Eukaryotes`),.by=sample_code) %>%
+  mutate(across(c(`all Eukaryotes`,protist,diff),~ .x/total*100)) %>%
+  summarize(across(c(`all Eukaryotes`,protist,diff),mean),.by=class)
+soil_mean_stat
+summarize(soil_mean_stat,across(-class,sum))
+
+# figure 2
+class_col<-c("phototroph"="chartreuse2","predator"="firebrick1","symbiotroph" = "darkorchid3",
+             "saprotroph" = "gold", "not_available" = "darkgrey", "unknown" = "grey90")
+figure2<-mutate(soils_ASV,class=sub("not_available","unknown",class)) %>%
+  summarize(ra=sum(ra),n_reads=sum(n_reads),.by=c(sample_code,clade,class)) %>%
+  ggplot(aes(clade,ra)) +
+  geom_boxplot(aes(fill=class),alpha=0.8,outliers=F,show.legend=F) +
+  geom_point(aes(color=class,alpha=0.6),size=1,
+             position=position_jitter(width=0.2),show.legend=F) +
+  theme_minimal() +
+  scale_color_manual(values=class_col) +
+  scale_fill_manual(values=class_col) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(y="Relative abundance (%)") +
+  facet_grid(~class,scales="free_x",space="free_x",switch="x") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
+        axis.title.x=element_blank(),
+        strip.placement="outside",
+        strip.text.x = element_text(size = 10, face = "bold"),
+        panel.spacing.x = unit(0, "null"))
+ggsave("Figure2.pdf",figure2,width=8,height=5)
+
+# Table S5: total percent of ASV by clade and functional class
+table_s5<-mutate(soils_ASV,class=sub("not_available","unknown",class)) %>%
+  summarize(n=sum(n),.by=c(clade,class)) %>%
+  mutate(perc=round(n/sum(n)*100,1),.by=clade) %>%
+  arrange(class) %>%
+  select(-n) %>%
+  pivot_wider(names_from=class,values_from=perc,values_fill=0)
+write_tsv(table_s5,"table_S5.tsv")
+
+# Figure 3: elevation gradients -------------------------------------------
+# load samples information and add habitat information from Delarze et al. (2015, ISBN: 978-2-940365-90-6)
+# https://www.infoflora.ch/fr/milieux/typoch-(delarze-et-al.).html
+typoch12<-read.delim("TypoCH/TypoCH_level_1_and_2.tsv",h=T)
+typoch3<-read.delim("TypoCH/TypoCH_level_3.tsv",h=T)
+typoch4<-read.delim("TypoCH/TypoCH_level_4.tsv",h=T)
+soils_samples<-read.csv("emi15686-sup-0002-additional_file_2.csv",h=T) %>%
+  rename(C_N="C.N") %>%
+  mutate(Alliance=sub("Potentillon","Potentillion",Alliance)) %>% 
+  left_join(add_row(typoch3,rename(typoch4,habitat=1,habitat_name=2)) %>%
+              select(-habitat_name) %>%
+              filter(!is.na(scientific_name)) %>%
+              mutate(scientific_name=gsub(" |-","_",scientific_name)) %>%
+              rename(typoch="habitat"),
+            by=c("Alliance"="scientific_name")) %>%
+  mutate(class=as.numeric(substr(typoch,1,1)),
+         group=as.numeric(substr(typoch,1,2)),
+         group=ifelse(nchar(group)==2,group,NA),
+         habitat=as.numeric(substr(typoch,1,3)),
+         habitat=ifelse(nchar(habitat)==3,habitat,NA)) %>%
+  left_join(select(typoch12,class,class_name) %>% unique(),by="class") %>%
+  left_join(select(typoch12,group,group_name),by="group") %>%
+  left_join(typoch3,by="habitat")
+
+# load ASV relative abundance, using metaPR2 dataset Soils_Swiss, version of March 2025
+func_soils<-left_join(soils_ASV,
+                      select(soils_samples,plotID,altitude,pH,class_name,group_name,group),
+                      by=c("sample_code"="plotID")) %>%
+  filter(! class %in% c("unknown","not_available")) %>%
+  rename(elevation="altitude") %>%
+  mutate(clade=as.factor(clade),
+         clade=fct_relevel(clade,"protist",after=1))
+
+# plot along elevation by clade and class
+plots_fig3<-dlply(func_soils,.(clade),function(x){
+  ggplot(x,aes(elevation,ra)) +
+    geom_point(aes(color=class),show.legend=F,size=0.9) +
+    geom_smooth(color="grey60",alpha=0.2)+
+    theme_bw() +
+    scale_color_manual(values=class_col[1:4]) +
+    scale_y_continuous(labels=scales::percent) +
+    labs(y="Relative abundance (%)",
+         tag=paste0(setNames(letters[1:4],levels(func_soils$clade))[unique(as.character(x$clade))],".")) +
+    facet_wrap(~class,scales="free",ncol=2) +
+    theme(plot.background=element_rect(color="grey85"),
+          plot.tag.position = c(0,1),
+          plot.tag = element_text(vjust = 1, hjust=-1))
+})
+figure3<-suppressWarnings(arrangeGrob(grobs=plots_fig3,heights=c(2,1.15)))
+# grid::grid.draw(figure3)
+ggsave("Figure3.pdf",figure3,width=9,height=7)
+
+# Figure S1: Main functional class by sample in example dataset -----------
+design<-"
+AAAAAAA##
+BBBCCCDDD
+"
+soils_sorted<-unite(soils_ASV,"cs",c(clade,sample_code),sep="_",remove=F) %>%
+  mutate(class=as.factor(class),
+         class=fct_relevel(class,"not_available",after=4),
+         class=fct_relevel(class,"phototroph",after=3),
+         clade=as.factor(clade),
+         clade=fct_relevel(clade,"protist",after=1)) %>% 
+  arrange(clade,class,desc(ra)) %>%
+  mutate(sample_code=as.character(sample_code),
+         sample_code=factor(sample_code,unique(sample_code)),
+         cs=factor(cs,levels=unique(cs)),
+         class=factor(class,rev(levels(class)))) #pull(class) %>% levels()
+
+figure_s1<-data.frame(clade=levels(soils_sorted$clade),let=letters[1:4]) %>%
+  mutate(cla=paste0(let,". ",clade)) %>%
+  right_join(soils_sorted,by="clade") %>%
+  ggplot(aes(cs,ra)) +
+  geom_bar(aes(fill=class),position="stack",stat="identity") +
+  facet_manual(~cla,design=design,
+               scales="free_x",width=c(3,1)) +
+  scale_fill_manual(values=class_col) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="samples",y="Relative abundance (%)",fill="main functional\nclass") +
+  theme_bw()+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        panel.grid=element_blank(),
+        legend.background=element_rect(fill="grey95"),
+        legend.position="inside",
+        legend.position.inside=c(0.90,0.75),
+        strip.background=element_blank(),
+        strip.text=element_text(hjust=0,face="bold"))
+ggsave("FigureS1.pdf",figure_s1,width=9,height=6)
+```

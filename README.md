@@ -38,6 +38,7 @@ Read command's help pages for usage information and examples.
 
 When assigning from a taxonomic table or a path or a clade ( `assign_path`, `assign_clade` ), different condensed databases can be provided (e.g. `DBc`, `DBc_main` or `DBc_minimal`). Own condensed database can be created with the tool `functionize`.
 
+Further usage examples can be found in the analyses conducted for the publish paper ([Lentendu *et al.*, 2025](#citation)), and can be found in the Rmd file [Lentendu_et_al.2025.Supplementary_R_Code.Rmd](data-raw/Lentendu_et_al.2025.Supplementary_R_Code.Rmd)
 
 Database governance
 ------
@@ -78,4 +79,4 @@ Database governance
 Citation
 --------
 
-Guillaume Lentendu, David Singer, Sabine Agatha, Mohammad Bahram, S. Emilia Hannula, Johannes A Helder, Leho Tedersoo, Walter Traunspurger, Enrique Lara, Stefan Geisen (2025), EukFunc: A holistic Eukaryotic Functional reference for automated profiling of soil eukaryotes, *submitted*
+Guillaume Lentendu, David Singer, Sabine Agatha, Mohammad Bahram, S. Emilia Hannula, Johannes A Helder, Leho Tedersoo, Walter Traunspurger, Enrique Lara, Stefan Geisen (2025), EukFunc: A holistic Eukaryotic Functional reference for automated profiling of soil eukaryotes, *Molecular Ecology Ressources*, accepted

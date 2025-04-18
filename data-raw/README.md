@@ -17,4 +17,5 @@ Scripts to get and format data to construct the example datasets taxo_exa and ta
 - get_taxo_exa.R
 - get_taxo_exa2.R
 
-
+The supplementary code to the publish paper is also provided:
+- Lentendu_et_al.2025.Supplementary_R_Code.Rmd
