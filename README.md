@@ -90,4 +90,4 @@ Database governance
 Citation
 --------
 
-Guillaume Lentendu, David Singer, Sabine Agatha, Mohammad Bahram, S. Emilia Hannula, Johannes A Helder, Leho Tedersoo, Walter Traunspurger, Enrique Lara, Stefan Geisen (2025), EukFunc: A holistic Eukaryotic Functional reference for automated profiling of soil eukaryotes, *Molecular Ecology Ressources*, accepted
+Guillaume Lentendu, David Singer, Sabine Agatha, Mohammad Bahram, S. Emilia Hannula, Johannes A Helder, Leho Tedersoo, Walter Traunspurger, Enrique Lara, Stefan Geisen (2025), EukFunc: A holistic Eukaryotic Functional reference for automated profiling of soil eukaryotes, *Molecular Ecology Ressources*, in press, e14118. doi: [10.1111/1755-0998.14118](https://doi.org/10.1111/1755-0998.14118)
