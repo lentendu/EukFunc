@@ -7,7 +7,7 @@
 assign_clade(x, ref = DBc, sep = ";", empty_string = c(NA, "NA", "", " "))
 }
 \arguments{
-\item{x}{a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5.0.0 taxonomic ranks}
+\item{x}{a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5 taxonomic ranks}
 
 \item{ref}{the reference database for performing the functional assignment, default to \code{\link{DBc}}}
 
@@ -23,7 +23,7 @@ a data-frame composed of:
   \item assigned_from: the matched taxonomy path in the condensed database 
   \item assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path 
   \item assigned_from_taxa: the deepest clade name of the matched taxonomy path 
-  \item all the columns of SoilEukFunc database containing the functional informations 
+  \item all the columns of EukFunc database containing the functional information
 }
 }
 \description{

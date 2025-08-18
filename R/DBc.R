@@ -1,8 +1,8 @@
-#' Condensed version of the SoilEukFunc database.
+#' Condensed version of the EukFunc database.
 #'
 #' A database containing the condensed taxonomy of all soil-associated protists,
 #' fungi and nematodes clades from PR2 v5.0.0 and
-#' their unique functional assignment from the SoilEukFunc database.
+#' their unique functional assignment from the EukFunc database.
 #'
 #' @format A data frame with 7072 rows and 13 variables:
 #' \describe{

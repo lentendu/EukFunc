@@ -15,7 +15,7 @@ assign_genbank(x, ...)
 a data-frame with the input list of accessions and the outputs of \code{\link{consensing}} and \code{\link{assign_path}}
 }
 \description{
-Read one or multiple genbank accessions, extract the corresponding taxonomy from the SoilEukFunc full database, compute consensus taxonomy if multiple accessions are provided and assign the corresponding functional group using \code{\link{assign_path}}
+Read one or multiple genbank accessions, extract the corresponding taxonomy from the EukFunc full database, compute consensus taxonomy if multiple accessions are provided and assign the corresponding functional group using \code{\link{assign_path}}
 }
 \examples{
 acc<-c("AB918716.1,EU039893.1,JF747215.1",

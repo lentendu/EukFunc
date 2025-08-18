@@ -2,7 +2,7 @@
 #'
 #' Read a taxonomy path and assign the corresponding functional group in the condensed clade database by matching the lowest possible clade of the provided taxonomy onto the database condensed taxonomy
 #'
-#' @param x a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5.0.0 taxonomic ranks
+#' @param x a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5 taxonomic ranks
 #' @param ref the reference database for performing the functional assignment, default to \code{\link{DBc}}
 #' @param sep separator character used to separate taxonomic ranks in the taxonomic path
 #' @param empty_string a vector of element accepted for missing taxonomic information at a single taxonomic rank
@@ -15,7 +15,7 @@
 #'   \item assigned_from: the matched taxonomy path in the condensed database 
 #'   \item assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path 
 #'   \item assigned_from_taxa: the deepest clade name of the matched taxonomy path 
-#'   \item all the columns of SoilEukFunc database containing the functional informations 
+#'   \item all the columns of EukFunc database containing the functional information
 #' }
 #' @seealso \code{\link{consensing}}, \code{\link{DBc}}, \code{\link{DBc_main}}
 #' @examples
@@ -65,10 +65,10 @@ assign_clade<-function(x, ref=DBc, sep=";", empty_string=c(NA, "NA", "", " ")) {
     if ( any(grepl("[Tt]axonomy", colnames(x))) ) {
       tx <- grep("[Tt]axonomy", colnames(x), value=T)
       y <- sub("(;NA)*$","",sub(";*$", "", gsub(sep, ";", gsub("^[a-z]:", "", getElement(x, tx)))))
-    } else if ( length(which(unlist(lapply(taxonomic_ranks,function(x) c(x,Cap(x)))) %in% colnames(x))) >= 4 ) {
-      y <- select(x, any_of(unlist(lapply(taxonomic_ranks,function(x) c(x,Cap(x)))))) %>%
-        mutate(across(everything(),~replace(., . %in% empty_string, NA))) %>%
-        mutate(across(everything(),~gsub("^[a-z]:", "", .))) %>%
+    } else if ( length(which(unlist(lapply(taxonomic_ranks, function(x) c(x, Cap(x)))) %in% colnames(x))) >= 4 ) {
+      y <- select(x, any_of(unlist(lapply(taxonomic_ranks, function(x) c(x, Cap(x)))))) %>%
+        mutate(across(everything(), ~replace(., . %in% empty_string, NA))) %>%
+        mutate(across(everything(), ~gsub("^[a-z]:", "", .))) %>%
         tidyr::unite("tax", sep=";") %>%
         mutate(tax=sub("(;NA)*;NA$", "", .data$tax)) %>%
         pull(.data$tax)
@@ -81,21 +81,21 @@ assign_clade<-function(x, ref=DBc, sep=";", empty_string=c(NA, "NA", "", " ")) {
   yu <- unique(y)
   z <- plyr::ldply(setNames(yu,yu), function(i) {
     nar<-NULL
-    for (j in rev(unlist(strsplit(i,sep)))) {
-      if ( j %in% getElement(ref,"taxa") ) {
-        nar<-filter(ref,.data$taxa==j)
+    for (j in rev(unlist(strsplit(i, sep)))) {
+      if ( j %in% getElement(ref, "taxa") ) {
+        nar<-filter(ref, .data$taxa==j)
         break
       }
     }
     if (is.null(nar)) {
-      data.frame(taxonomy=i,level=NA,taxa=NA)
+      data.frame(taxonomy=i, level=NA, taxa=NA)
     } else {
       nar
     }
   }, .id="taxo") %>%
-    select(-one_of("count")) %>%
+    select(-any_of("count")) %>%
     rename(assigned_from="taxonomy", assigned_at_rank="level", assigned_from_taxa="taxa", taxonomy="taxo") %>%
-    mutate(assigned_from=ifelse(is.na(.data$assigned_at_rank),NA,.data$assigned_from))
+    mutate(assigned_from=ifelse(is.na(.data$assigned_at_rank), NA, .data$assigned_from))
   if ( is.vector(x) ){
     tmpo <- data.frame(inp=x, taxonomy=y)
   } else {
@@ -105,8 +105,7 @@ assign_clade<-function(x, ref=DBc, sep=";", empty_string=c(NA, "NA", "", " ")) {
       tmpo <- data.frame(x, taxonomy=y)
     }
   }
-  left_join(tmpo,z,by=c("taxonomy"="taxonomy")) %>%
+  left_join(tmpo, z, by="taxonomy") %>%
     select(-"taxonomy") %>%
     rename(any_of(c("taxonomy"="inp")))
 }
-

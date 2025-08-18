@@ -17,8 +17,8 @@
 #'   \item assigned_from: the matched taxonomy path in the condensed database 
 #'   \item assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path 
 #'   \item assigned_from_taxa: the deepest clade name of the matched taxonomy path 
-#'   \item all the columns of the selected SoilEukFunc database containing the functional informations 
-#'   \item confidence: the percentage of species with identical functional informations in the clade described by assigned_from_taxa 
+#'   \item all the columns of the selected EukFunc database containing the functional information
+#'   \item confidence: the percentage of species with identical functional information in the clade described by assigned_from_taxa 
 #' }
 #' @seealso \code{\link{assign_path}}, \code{\link{DBc}}, \code{\link{DBc_main}}
 #' @examples

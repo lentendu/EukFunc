@@ -1,6 +1,6 @@
 #' Assign functional group based on a partial PR2 taxonomic path
 #'
-#' Read a taxonomy path and assign the corresponding functional group in the condensed clade database by partial matches of the provided taxonomy onto the full database clade path
+#' Read a taxonomy path and assign the corresponding functional group in the condensed clade database by (partial) matches of the provided taxonomy onto the full database clade path (all ranks in the path need to match).
 #'
 #' @param x a vector of taxonomy path OR a data-frame with taxonomy path in a column named "taxonomy" or "Taxonomy" OR a data-frame with column named after PR2 v5 9 rank's taxonomic structure
 #' @param ref the reference database for performing the functional assignment, default to \code{\link{DBc}}
@@ -15,7 +15,7 @@
 #'   \item assigned_from: the matched taxonomy path in the condensed database
 #'   \item assigned_at_rank: the deepest taxonomic rank name of the matched taxonomy path
 #'   \item assigned_from_taxa: the deepest clade name of the matched taxonomy path
-#'   \item all the columns of SoilEukFunc database containing the functional informations
+#'   \item all the columns of EukFunc database containing the functional information
 #' }
 #' @seealso \code{\link{consensing}}, \code{\link{DBc}}, \code{\link{DBc_main}}
 #' @examples

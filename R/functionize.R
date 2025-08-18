@@ -34,28 +34,28 @@
 functionize <- function(df, taxo_names, func_names, empty_string=c(NA, "NA", "", " ")) {
 
   # count all unique combinations of full taxonomic path and function fields, if multiple
-  mat<-mutate(df,across(all_of(taxo_names),~replace(as.character(.), . %in% empty_string, NA))) %>%
-    summarize(count=n(),.by=all_of(c(taxo_names,func_names)))
+  mat<-mutate(df, across(all_of(taxo_names), ~replace(as.character(.), . %in% empty_string, NA))) %>%
+    summarize(count=n(), .by=all_of(c(taxo_names,func_names)))
 
   # loop over taxonomic levels, find the shortest taxonomic path with a single functional annotation
   res<-NULL
   for(i in 2:length(taxo_names)) {
-    ti<-summarize(mat,count=sum(count),.by=c(taxo_names[1:i],func_names)) %>%
+    ti<-summarize(mat, count=sum(count), .by=all_of(c(taxo_names[1:i], func_names))) %>%
       group_by_at(taxo_names[1:i]) %>%
       mutate(n=n()) %>%
       ungroup()
     if( any(ti$n == 1) ) {
       if(is.null(res)) {
-        res<-filter(ti,n==1) %>%
+        res<-filter(ti, n==1) %>%
           select(-n) %>%
           mutate(level=taxo_names[i],
-                 taxa=getElement(.data,taxo_names[i]))
+                 taxa=getElement(.data, taxo_names[i]))
       } else {
         res<-bind_rows(res,
                        filter(ti,n==1) %>%
                          select(-n) %>%
                          mutate(level=taxo_names[i],
-                                taxa=getElement(.data,taxo_names[i])))
+                                taxa=getElement(.data, taxo_names[i])))
       }
       mat<-anti_join(mat,
                      filter(ti,n==1) %>%
@@ -70,6 +70,6 @@ functionize <- function(df, taxo_names, func_names, empty_string=c(NA, "NA", "",
     }
   }
   # return taxonomic ranks, functional annotation
-  select(res,any_of(taxo_names),all_of(func_names),.data$level,.data$taxa,.data$count) %>%
-    mutate(across(any_of(taxo_names),~tidyr::replace_na(as.character(.),"")))
+  select(res, any_of(taxo_names), all_of(func_names), all_of(c("level", "taxa", "count"))) %>%
+    mutate(across(any_of(taxo_names), ~tidyr::replace_na(as.character(.), "")))
 }

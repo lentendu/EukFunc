@@ -10,8 +10,8 @@ assign_sp(x)
 \item{x}{a vector of species names OR a data-frame with species names in a column named "species" or "Species"}
 }
 \value{
-a data-frame composed of the input vector or columns, a new column `species_name` use to perform the match and all the columns of the species unique SoilEukFunc database without taxonomy.
-        Species names with no match return the SoilEukFunc databases columns filled with NA.
+a data-frame composed of the input vector or columns, a new column `species_name` use to perform the match and all the columns of the species unique EukFunc database without taxonomy.
+        Species names with no match return the EukFunc databases columns filled with NA.
 }
 \description{
 Read a species list and assign the corresponding functional group in the unique species database by exact matches of species names

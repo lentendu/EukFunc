@@ -1,6 +1,6 @@
 #' Assign functional group based on genbank accession
 #'
-#' Read one or multiple genbank accessions, extract the corresponding taxonomy from the SoilEukFunc full database, compute consensus taxonomy if multiple accessions are provided and assign the corresponding functional group using \code{\link{assign_path}}
+#' Read one or multiple genbank accessions, extract the corresponding taxonomy from the EukFunc full database, compute consensus taxonomy if multiple accessions are provided and assign the corresponding functional group using \code{\link{assign_path}}
 #'
 #' @param x a vector or list of genbank accessions
 #' @param ... further arguments passed to \code{\link{assign_path}} and \code{\link{consensing}}
