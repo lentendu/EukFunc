@@ -20,6 +20,7 @@ Imports:
     methods,
     plyr,
     rlang,
+    stringr,
     tibble,
     tidyr
 Suggests:

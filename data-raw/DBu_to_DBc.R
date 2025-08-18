@@ -13,36 +13,20 @@ nDBc <- functionize(DBu, taxonomic_ranks, func_classes) %>%
 
 # dplyr::count(DBc, dplyr::across(tidyselect::ends_with("_functional_class")))
 
-# Use only main and secondary functional classes to condense the taxonomy
-symb1<-filter(DBu,main_functional_class=="symbiotroph") %>%
-  select(species,detailed_functional_class) %>%
-  separate(detailed_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
-  pivot_longer(-species,names_to="lev",values_to="detailed") %>%
-  filter(!is.na(detailed),!grepl("lichenized",detailed)) %>% # lichenized and host phototroph always make two detailed annotation per species (semi-column separated), so remove one
-  mutate(det=ifelse(grepl("parasite|pathogen",detailed),"parasite symbiotroph",
-                    ifelse(grepl("mycorrhiz",detailed),"mycorrhiza symbiotroph",
-                           ifelse(grepl("host phototroph",detailed),"host phototroph symbiotroph","other symbiotroph")))) %>%
-  group_by(species) %>%
-  summarize(det=paste(unique(sort(det)), collapse="; "))
-
-symb2<-filter(DBu,secondary_functional_class=="symbiotroph") %>%
-  select(species,detailed_secondary_functional_class) %>%
-  separate(detailed_secondary_functional_class,c("d1","d2","d3","d4","d5"),sep="; ",fill="right") %>%
-  pivot_longer(-species,names_to="lev",values_to="detailed") %>%
-  filter(!is.na(detailed),!grepl("lichenized",detailed)) %>%
-  mutate(det=ifelse(grepl("parasite|pathogen",detailed),"parasite symbiotroph",
-                    ifelse(grepl("mycorrhiz",detailed),"mycorrhiza symbiotroph",
-                           ifelse(grepl("host phototroph",detailed),"host phototroph symbiotroph","other symbiotroph")))) %>%
-  group_by(species) %>%
-  summarize(det=paste(unique(sort(det)), collapse="; "))
-
-DBu_symb<-select(DBu, !!taxonomic_ranks, !!func_classes[c(1,3)]) %>%
-  full_join(symb1) %>%
-  mutate(main_functional_class=ifelse(is.na(det),as.character(main_functional_class),det)) %>%
-  select(-det) %>%
-  full_join(symb2) %>%
-  mutate(secondary_functional_class=ifelse(is.na(det),as.character(secondary_functional_class),det)) %>%
-  select(-det)
+# Use only main and secondary functional classes to condense the taxonomy, with additional detail for symbiotroph
+DBu_symb<-rowwise(DBu) %>%
+  mutate(main_functional_class=ifelse(main_functional_class=="symbiotroph" &
+                                        !is.na(detailed_functional_class) &
+                                        detailed_functional_class!="",
+                                      get_symbio_det(detailed_functional_class),
+                                      main_functional_class),
+         secondary_functional_class=ifelse(secondary_functional_class=="symbiotroph" &
+                                             !is.na(detailed_secondary_functional_class) &
+                                             detailed_secondary_functional_class!="",
+                                           get_symbio_det(detailed_secondary_functional_class),
+                                           secondary_functional_class)) %>%
+  ungroup() %>%
+  data.frame()
 
 nDBc_main <- functionize(DBu_symb, taxonomic_ranks, func_classes[c(1,3)]) %>%
   mutate(across(!!taxonomic_ranks, ~na_if(., ""))) %>%

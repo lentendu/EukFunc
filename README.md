@@ -10,11 +10,22 @@ Installation
 ```r
 install.packages("remotes")
 remotes::install_github("lentendu/EukFunc")
-library(EukFunc)
 ```
 
-Usages
-------
+Quickstart
+----------
+
+The main function is `assign_func`, it accept either a vector of taxonomy(ies), a data-frame with a `taxonomy` column or a data-frame with column named after the [PR2 9-levels taxonomy](https://pr2-database.org/documentation/pr2-taxonomy-9-levels/).
+
+```r
+library(EukFunc)
+head(taxo_exa)
+assign_func(taxo_exa)
+?assign_func()
+```
+
+Detailed usages
+---------------
 
 The database is provided in six different flavors:
 * a species database `DBu` or `data(DBu)`
@@ -41,7 +52,7 @@ When assigning from a taxonomic table or a path or a clade ( `assign_path`, `ass
 Further usage examples can be found in the analyses conducted for the publish paper ([Lentendu *et al.*, 2025](#citation)), and can be found in the Rmd file [Lentendu_et_al.2025.Supplementary_R_Code.Rmd](data-raw/Lentendu_et_al.2025.Supplementary_R_Code.Rmd)
 
 Database governance
-------
+-------------------
 
 **Database:**
 
