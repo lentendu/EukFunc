@@ -51,44 +51,48 @@ assign_func <- function(x, assign="clade", ref=DBc, sep=";", empty_string=c(NA, 
     stop(paste("unknown assign function: '",assign,"'"))
   }
   tmp_na <- filter(tmp, is.na(.data$assigned_at_rank))
-  if ( nrow(tmp_na) > 0 ) {
-    if (is.vector(x)) {
-      tmp_na <- tmp_na$taxonomy
+  DB <- deparse(substitute(ref))
+  if ( DB %in% c("DBc","DBu") ) {
+    if ( nrow(tmp_na) > 0) {
+      if (is.vector(x)) {
+        tmp_na <- tmp_na$taxonomy
+      } else {
+        tmp_na <- select(tmp_na, all_of(colnames(x)))
+      }
+      if( assign == "clade" ) {
+        tmp2 <- assign_clade(tmp_na, ref=get(paste0(DB,"_main")), sep=sep, empty_string=empty_string)
+      } else {
+        tmp2 <- assign_path(tmp_na, ref=get(paste0(DB,"_main")), sep=sep, empty_string=empty_string)
+      }
+      # combine both results and sort to original order
+      out <- bind_rows(filter(tmp, !is.na(.data$assigned_at_rank)), tmp2)
+      if (is.vector(x)) {
+        out2 <- left_join(data.frame(taxonomy=x), out, by="taxonomy", multiple="first")
+      } else {
+        out2 <- left_join(x, out, by=colnames(x), multiple="first")
+      }
     } else {
-      tmp_na <- select(tmp_na, all_of(colnames(x)))
+      out2 <- tmp
     }
-    DB <- deparse(substitute(ref))
-    if( assign == "clade" ) {
-      tmp2 <- assign_clade(tmp_na, ref=get(paste0(DB,"_main")), sep=sep, empty_string=empty_string)
+    # harmonize main_functional_class annotation for symbiotroph
+    if( "main_functional_class" %in% colnames(out2) ) {
+      rowwise(out2) %>%
+        mutate(main_functional_class=ifelse(.data$main_functional_class=="symbiotroph" &
+                                              !is.na(.data$detailed_functional_class) &
+                                              .data$detailed_functional_class!="",
+                                            get_symbio_det(.data$detailed_functional_class),
+                                            .data$main_functional_class),
+               secondary_functional_class=ifelse(.data$secondary_functional_class=="symbiotroph" &
+                                                   !is.na(.data$detailed_secondary_functional_class) &
+                                                   .data$detailed_secondary_functional_class!="",
+                                                 get_symbio_det(.data$detailed_secondary_functional_class),
+                                                 .data$secondary_functional_class)) %>%
+        ungroup() %>%
+        data.frame()
     } else {
-      tmp2 <- assign_path(tmp_na, ref=get(paste0(DB,"_main")), sep=sep, empty_string=empty_string)
-    }
-    # combine both results and sort to original order
-    out <- bind_rows(filter(tmp, !is.na(.data$assigned_at_rank)), tmp2)
-    if (is.vector(x)) {
-      out2 <- left_join(data.frame(taxonomy=x), out, by="taxonomy", multiple="first")
-    } else {
-      out2 <- left_join(x, out, by=colnames(x), multiple="first")
+      return(out2)
     }
   } else {
-    out2 <- tmp
+    return(tmp)
   }
-  # harmonize main_functional_class annotation for symbiotroph
-  if( "main_functional_class" %in% colnames(out2) ) {
-    rowwise(out2) %>%
-      mutate(main_functional_class=ifelse(.data$main_functional_class=="symbiotroph" &
-                                            !is.na(.data$detailed_functional_class) &
-                                            .data$detailed_functional_class!="",
-                                          get_symbio_det(.data$detailed_functional_class),
-                                          .data$main_functional_class),
-             secondary_functional_class=ifelse(.data$secondary_functional_class=="symbiotroph" &
-                                                 !is.na(.data$detailed_secondary_functional_class) &
-                                                 .data$detailed_secondary_functional_class!="",
-                                               get_symbio_det(.data$detailed_secondary_functional_class),
-                                               .data$secondary_functional_class)) %>%
-      ungroup() %>%
-      data.frame()
-  } else {
-    return(out2)
-  } 
 }
